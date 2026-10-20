@@ -2,7 +2,7 @@
 
 A focused browser prototype for the two-player version of Rummy 500, built around the wonderfully sharp discard-pile rule: the whole discard pile is visible, and if you reach down into it, you must immediately use the card you went in for.
 
-This project is a local pass-and-play game. It is designed to capture the feel of a kitchen-table two-player match before adding online play, AI, or a deeper rules engine.
+This project is a local game (pass-and-play, versus a bot, or bot vs bot). It is designed to capture the feel of a kitchen-table two-player match before adding online play, AI, or a deeper rules engine.
 
 ## Why This Exists
 
@@ -22,7 +22,8 @@ That single rule makes the discard pile a public memory game, a temptation engin
 - Enforced buried-card commitment.
 - Set and run validation.
 - Round scoring with positive and negative hand totals.
-- Pass-and-play turn flow.
+- Three modes: two humans (pass-and-play), human vs bot, or watch two bots.
+- Rule-aware bot that only reaches into the discard pile when it can meld the card it wants.
 - Responsive card-table interface.
 - Local match state managed entirely in React.
 
@@ -53,7 +54,6 @@ These are natural next steps rather than bugs:
 - Configurable ace behavior.
 - Requiring a discard to go out as a strict house-rule toggle.
 - Calling "Rummy" on a missed playable discard.
-- AI opponent.
 - Online multiplayer.
 - Saved match history.
 
@@ -94,7 +94,9 @@ npm run lint
 
 ```text
 src/
-  App.tsx      Game state, rules, scoring, and UI
+  game.ts      Cards, meld validation, scoring, and pure turn transitions
+  bot.ts       Bot player (one action per call)
+  App.tsx      Mode select and match UI
   App.css      Table, card, pile, and responsive styling
   index.css    Global base styles
 ```
