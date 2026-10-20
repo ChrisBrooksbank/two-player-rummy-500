@@ -24,7 +24,7 @@ That single rule makes the discard pile a public memory game, a temptation engin
 - Round scoring with positive and negative hand totals.
 - Three modes: two humans (pass-and-play), human vs bot, or watch two bots.
 - Rule-aware bot that only reaches into the discard pile when it can meld the card it wants.
-- Responsive card-table interface.
+- Three.js (react-three-fiber) 3D card table: procedurally painted cards, animated deals, flips and discards, and a glass HUD.
 - Local match state managed entirely in React.
 
 ## Rules Modeled
