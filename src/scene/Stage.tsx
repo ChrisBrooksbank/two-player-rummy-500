@@ -15,13 +15,11 @@ import {
 } from 'three'
 import type { Points } from 'three'
 import { SERIF } from './cardArt'
-import { DISCARD_SLOT, STOCK_POS, TABLE_SCALE } from './layout'
+import { TABLE_SCALE, metricsFor } from './layout'
+import type { Metrics } from './layout'
+import { usePortrait } from './viewport'
 
 export type View = 'menu' | 'match'
-
-const TABLE_W = 20
-const TABLE_H = 13.6
-const TABLE_CZ = 0.1
 
 function roundedRectShape(w: number, h: number, r: number): Shape {
   const x = -w / 2
@@ -39,7 +37,8 @@ function roundedRectShape(w: number, h: number, r: number): Shape {
   return s
 }
 
-function paintFelt(): { color: CanvasTexture; bump: CanvasTexture } {
+function paintFelt(m: Metrics): { color: CanvasTexture; bump: CanvasTexture } {
+  const { w: TABLE_W, h: TABLE_H, cz: TABLE_CZ } = m.table
   const cw = 2048
   const ch = Math.round((cw * TABLE_H) / TABLE_W)
   const px = (x: number) => ((x + TABLE_W / 2) / TABLE_W) * cw
@@ -104,8 +103,8 @@ function paintFelt(): { color: CanvasTexture; bump: CanvasTexture } {
   }
   const cardW = TABLE_SCALE + 0.3
   const cardH = TABLE_SCALE * 1.4 + 0.3
-  slot(STOCK_POS[0], STOCK_POS[2], cardW, cardH, 'STOCK')
-  slot(DISCARD_SLOT.cx, DISCARD_SLOT.z, DISCARD_SLOT.w, cardH, 'DISCARD  ·  REACH IN, BUT COMMIT')
+  slot(m.stock[0], m.stock[2], cardW, cardH, 'STOCK')
+  slot(m.slot.cx, m.slot.z, m.slot.w, cardH, m.table.w < 14 ? 'DISCARD' : 'DISCARD  ·  REACH IN, BUT COMMIT')
 
   const color = new CanvasTexture(canvas)
   color.colorSpace = SRGBColorSpace
@@ -130,8 +129,10 @@ function paintFelt(): { color: CanvasTexture; bump: CanvasTexture } {
 }
 
 function Table() {
+  const m = metricsFor(usePortrait())
+  const { w: TABLE_W, h: TABLE_H, cz: TABLE_CZ } = m.table
   const { feltGeometry, bodyGeometry, textures } = useMemo(() => {
-    const textures = paintFelt()
+    const textures = paintFelt(m)
     const feltShape = roundedRectShape(TABLE_W, TABLE_H, 1.2)
     const feltGeometry = new ShapeGeometry(feltShape, 12)
     const pos = feltGeometry.attributes.position
@@ -148,7 +149,7 @@ function Table() {
       curveSegments: 16,
     })
     return { feltGeometry, bodyGeometry, textures }
-  }, [])
+  }, [m, TABLE_W, TABLE_H])
 
   return (
     <group position={[0, 0, TABLE_CZ]}>
@@ -233,14 +234,15 @@ function CameraRig({ view }: { view: View }) {
     let wantElev: number
     let wantTy: number
     let wantTz: number
+    const portrait = aspect < 0.95
     if (view === 'match') {
       // Fit the table width, but never sit closer than the depth of the layout needs.
-      wantDist = Math.max(8.9 / (Math.tan(vfov / 2) * aspect), 19.5)
-      wantElev = 0.93
+      wantDist = Math.max((portrait ? 5.0 : 8.9) / (Math.tan(vfov / 2) * aspect), portrait ? 14 : 19.5)
+      wantElev = portrait ? 1.08 : 0.93
       wantTy = 0
-      wantTz = 1.2
+      wantTz = portrait ? -0.7 : 1.2
     } else {
-      wantDist = Math.max(7.5 / (Math.tan(vfov / 2) * aspect), 11)
+      wantDist = Math.max((portrait ? 3.8 : 7.5) / (Math.tan(vfov / 2) * aspect), portrait ? 9 : 11)
       wantElev = 0.52
       wantTy = 0.9
       wantTz = 0

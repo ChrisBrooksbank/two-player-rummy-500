@@ -16,7 +16,7 @@ import {
 import type { Group, MeshBasicMaterial } from 'three'
 import type { Card } from '../game'
 import { backFaceTexture, faceTexture, haloTexture } from './cardArt'
-import { CARD_H, CARD_T, CARD_W, STOCK_POS, TABLE_SCALE } from './layout'
+import { CARD_H, CARD_T, CARD_W, TABLE_SCALE } from './layout'
 import type { CardTarget, Glow } from './layout'
 
 function roundedCardShape(): Shape {
@@ -82,16 +82,17 @@ const tmpColor = new Color()
 type Props = {
   card: Card
   target: CardTarget
+  spawn?: [number, number, number]
   onHover: (id: string | null) => void
 }
 
-function CardMeshBase({ card, target, onHover }: Props) {
+function CardMeshBase({ card, target, spawn = [0, 0, 0], onHover }: Props) {
   const outer = useRef<Group>(null)
   const inner = useRef<Group>(null)
   const halo = useRef<MeshBasicMaterial>(null)
   const state = useRef({
     started: -1,
-    pos: new Vector3(STOCK_POS[0], 0.6, STOCK_POS[2]),
+    pos: new Vector3(spawn[0], 0.6, spawn[2]),
     quat: new Quaternion().setFromEuler(new Euler(-Math.PI / 2, 0, 0, 'YXZ')),
     scale: TABLE_SCALE,
     flip: Math.PI,
