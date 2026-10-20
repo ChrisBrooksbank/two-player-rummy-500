@@ -5,7 +5,8 @@ import { DoubleSide, ShapeGeometry, Shape } from 'three'
 import type { Group } from 'three'
 import type { Card, Game } from '../game'
 import { CardMesh } from './CardMesh'
-import { CARD_H, TABLE_SCALE, layoutCards } from './layout'
+import { CARD_H, TABLE_SCALE, layoutCards, metricsFor } from './layout'
+import { usePortrait } from './viewport'
 import type { Actions } from './layout'
 
 const matShape = (() => {
@@ -36,10 +37,11 @@ type Props = {
 
 export function MatchScene({ game, viewer, canDraw, canPlay, revealAll, actions }: Props) {
   const [hoverId, setHoverId] = useState<string | null>(null)
+  const m = metricsFor(usePortrait())
 
   const layout = useMemo(
-    () => layoutCards({ game, viewer, hoverId, canDraw, canPlay, revealAll, actions }),
-    [game, viewer, hoverId, canDraw, canPlay, revealAll, actions],
+    () => layoutCards({ game, viewer, hoverId, canDraw, canPlay, revealAll, actions, m }),
+    [game, viewer, hoverId, canDraw, canPlay, revealAll, actions, m],
   )
 
   return (
@@ -63,7 +65,7 @@ export function MatchScene({ game, viewer, canDraw, canPlay, revealAll, actions 
         </mesh>
       ))}
       {layout.cards.map(({ card, target }) => (
-        <CardMesh key={card.id} card={card} target={target} onHover={setHoverId} />
+        <CardMesh key={card.id} card={card} target={target} spawn={m.stock} onHover={setHoverId} />
       ))}
     </group>
   )
@@ -81,6 +83,8 @@ const showcase: Card[] = [
 export function Showcase() {
   const group = useRef<Group>(null)
   const noop = () => {}
+  const portrait = usePortrait()
+  const gap = portrait ? 0.85 : 1.25
   useFrame(({ clock }) => {
     if (!group.current) return
     group.current.position.y = Math.sin(clock.elapsedTime * 0.9) * 0.12
@@ -96,11 +100,11 @@ export function Showcase() {
             card={card}
             onHover={noop}
             target={{
-              pos: [off * 1.25, 1.7 + Math.abs(off) * -0.06 + i * 0.004, 0.2 + off * off * 0.12 + i * 0.01],
+              pos: [off * gap, 1.7 + Math.abs(off) * -0.06 + i * 0.004, (portrait ? -2.4 : 0.2) + off * off * 0.12 + i * 0.01],
               tilt: 0.5,
               yaw: 0,
               spin: -off * 0.15,
-              scale: 1.5,
+              scale: portrait ? 1.25 : 1.5,
               faceUp: true,
               glow: 'none',
               order: i + 1,
