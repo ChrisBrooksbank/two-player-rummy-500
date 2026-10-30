@@ -12,6 +12,8 @@ export type Meld = {
   owner: number
   cards: Card[]
   kind: 'set' | 'run'
+  /** Seat that laid off each card, for cards added after the meld was made; the rest belong to `owner`. */
+  laidBy: Record<string, number>
 }
 
 export type Controller = 'human' | 'bot'
@@ -233,7 +235,7 @@ export function playMeld(game: Game, cardIds: string[]): Game {
     ...next,
     melds: [
       ...next.melds,
-      { id: crypto.randomUUID(), owner: game.active, cards: sortCards(cards), kind },
+      { id: crypto.randomUUID(), owner: game.active, cards: sortCards(cards), kind, laidBy: {} },
     ],
     selected: [],
     drawLock: null,
@@ -241,15 +243,57 @@ export function playMeld(game: Game, cardIds: string[]): Game {
   }
 }
 
-export function scoreRound(game: Game, lead: string): Game {
-  const tablePoints = [0, 0]
-  for (const meld of game.melds) {
-    tablePoints[meld.owner] += cardPoints(meld.cards)
+/** Whether `cards` can all be added to `meld` and leave it a valid meld of the same kind. */
+export function canLayOff(meld: Meld, cards: Card[]): boolean {
+  return cards.length > 0 && classifyMeld([...meld.cards, ...cards]) === meld.kind
+}
+
+/** Adds cards from the active hand onto any meld on the table; they score for the player laying off. */
+export function layOff(game: Game, cardIds: string[], meldId: string): Game {
+  if (game.phase !== 'play') return game
+  const player = game.players[game.active]
+  const cards = player.hand.filter((card) => cardIds.includes(card.id))
+  const meld = game.melds.find((candidate) => candidate.id === meldId)
+  if (!meld || cards.length !== cardIds.length || !canLayOff(meld, cards)) return game
+
+  if (game.drawLock && cardIds.includes(game.drawLock.cardId)) {
+    return { ...game, message: `${game.drawLock.label} has to go in a new meld, not onto an existing one.` }
   }
+  if (cards.length === player.hand.length) {
+    return { ...game, message: 'Keep one card back to discard.' }
+  }
+
+  const laidBy = { ...meld.laidBy }
+  for (const card of cards) laidBy[card.id] = game.active
+  const next = withActiveHand(
+    game,
+    player.hand.filter((card) => !cardIds.includes(card.id)),
+  )
+  return {
+    ...next,
+    melds: next.melds.map((candidate) =>
+      candidate.id === meldId ? { ...candidate, cards: sortCards([...candidate.cards, ...cards]), laidBy } : candidate,
+    ),
+    selected: [],
+    message: `${player.name} laid off ${sortCards(cards).map(cardLabel).join(' ')}.`,
+  }
+}
+
+/** Table points per seat; laid-off cards count for whoever laid them off. */
+export function tablePoints(game: Game): [number, number] {
+  const points: [number, number] = [0, 0]
+  for (const meld of game.melds) {
+    for (const card of meld.cards) points[meld.laidBy[card.id] ?? meld.owner] += rankValues[card.rank]
+  }
+  return points
+}
+
+export function scoreRound(game: Game, lead: string): Game {
+  const table = tablePoints(game)
 
   const players = game.players.map((player, index) => ({
     ...player,
-    score: player.score + tablePoints[index] - cardPoints(player.hand),
+    score: player.score + table[index] - cardPoints(player.hand),
   })) as [Player, Player]
 
   return {

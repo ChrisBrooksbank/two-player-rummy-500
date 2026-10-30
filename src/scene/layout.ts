@@ -1,3 +1,4 @@
+import { canLayOff } from '../game'
 import type { Card, Game } from '../game'
 
 export const CARD_W = 1
@@ -103,6 +104,7 @@ export type Actions = {
   takeDiscard: (index: number) => void
   toggleCard: (cardId: string) => void
   discardCard: (cardId: string) => void
+  layOff: (meldId: string) => void
 }
 
 export type LayoutInput = {
@@ -112,6 +114,7 @@ export type LayoutInput = {
   canDraw: boolean
   canPlay: boolean
   revealAll: boolean
+  hideHand: boolean
   actions: Actions
   m: Metrics
 }
@@ -130,7 +133,7 @@ function jitter(id: string, salt: number): number {
 
 const lift = (tilt: number, amount: number): [number, number] => [Math.sin(tilt) * amount, -Math.cos(tilt) * amount]
 
-export function layoutCards({ game, viewer, hoverId, canDraw, canPlay, revealAll, actions, m }: LayoutInput): LayoutResult {
+export function layoutCards({ game, viewer, hoverId, canDraw, canPlay, revealAll, hideHand, actions, m }: LayoutInput): LayoutResult {
   const cards: LayoutResult['cards'] = []
   const mats: MeldMat[] = []
   const step = CARD_T * 0.9
@@ -183,7 +186,10 @@ export function layoutCards({ game, viewer, hoverId, canDraw, canPlay, revealAll
   ]
   const maxX = m.meldMaxX
   const spread = 0.4
+  const selectedCards = game.players[viewer].hand.filter((card) => game.selected.includes(card.id))
   for (const meld of game.melds) {
+    // With cards selected, any meld they would extend glows and lays them off when clicked.
+    const target = canPlay && canLayOff(meld, selectedCards)
     const cursor = cursors[meld.owner]
     const width = TABLE_SCALE + (meld.cards.length - 1) * spread
     if (cursor.x + width > maxX) {
@@ -201,8 +207,9 @@ export function layoutCards({ game, viewer, hoverId, canDraw, canPlay, revealAll
           spin: 0,
           scale: TABLE_SCALE,
           faceUp: true,
-          glow: 'none',
+          glow: target ? 'take' : 'none',
           order: 0,
+          onClick: target ? () => actions.layOff(meld.id) : undefined,
         },
       })
     })
@@ -232,8 +239,8 @@ export function layoutCards({ game, viewer, hoverId, canDraw, canPlay, revealAll
         yaw: 0,
         spin: -off * 0.04,
         scale: m.handScale,
-        faceUp: true,
-        glow: must ? 'must' : selected ? 'select' : 'none',
+        faceUp: !hideHand,
+        glow: hideHand ? 'none' : must ? 'must' : selected ? 'select' : 'none',
         order: i + 1,
         onClick: canPlay ? () => actions.toggleCard(card.id) : undefined,
         onDouble: canPlay ? () => actions.discardCard(card.id) : undefined,
