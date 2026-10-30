@@ -1,4 +1,4 @@
-import { cardPoints } from './game'
+import { cardPoints, tablePoints } from './game'
 import type { Game } from './game'
 
 export type Mode = {
@@ -62,9 +62,13 @@ type MatchHudProps = {
   botTurn: boolean
   paused: boolean
   selectedMeldKind: string | null
+  layOffTargets: string[]
+  handoff: boolean
+  onReveal: () => void
   onTogglePause: () => void
   onDraw: () => void
   onMeld: () => void
+  onLayOff: () => void
   onDiscard: () => void
   onBlocked: () => void
   onNextRound: () => void
@@ -73,19 +77,23 @@ type MatchHudProps = {
 }
 
 export function MatchHud(props: MatchHudProps) {
-  const { game, viewer, humanTurn, canDraw, canPlay, botTurn, paused, selectedMeldKind } = props
+  const { game, viewer, humanTurn, canDraw, canPlay, botTurn, paused, selectedMeldKind, layOffTargets, handoff } = props
   const active = game.players[game.active]
   const over = game.phase === 'round-over'
 
   const hint = over
     ? 'Round over.'
+    : handoff
+      ? `Pass the screen to ${active.name}.`
     : botTurn
       ? `${active.name} is thinking…`
       : game.drawLock
         ? `Play ${game.drawLock.label} in a meld before you discard.`
         : game.phase === 'draw'
           ? 'Draw from the stock, or click any discard to take it and everything above.'
-          : 'Click cards to select. Meld a set or run, or double-click a card to discard it.'
+          : layOffTargets.length > 1
+            ? 'Click a glowing meld to lay your selected cards off onto it.'
+            : 'Click cards to select. Meld a set or run, lay off onto a meld, or double-click a card to discard it.'
 
   return (
     <>
@@ -119,6 +127,8 @@ export function MatchHud(props: MatchHudProps) {
         {game.message}
       </p>
 
+      {handoff ? <Handoff name={active.name} onReveal={props.onReveal} /> : null}
+
       {!over ? (
         <footer className="dock">
           <p className={`hint ${game.drawLock ? 'warn' : ''}`}>{hint}</p>
@@ -134,6 +144,11 @@ export function MatchHud(props: MatchHudProps) {
                   <button className="primary" disabled={!canPlay || !selectedMeldKind} onClick={props.onMeld} type="button">
                     {selectedMeldKind ? `Meld ${selectedMeldKind}` : 'Meld selected'}
                   </button>
+                  {layOffTargets.length > 0 ? (
+                    <button className="primary" disabled={layOffTargets.length !== 1} onClick={props.onLayOff} type="button">
+                      Lay off
+                    </button>
+                  ) : null}
                   <button
                     disabled={!canPlay || game.selected.length !== 1 || Boolean(game.drawLock)}
                     onClick={props.onDiscard}
@@ -158,11 +173,28 @@ export function MatchHud(props: MatchHudProps) {
   )
 }
 
+function Handoff({ name, onReveal }: { name: string; onReveal: () => void }) {
+  return (
+    <div className="summary-backdrop">
+      <section className="summary handoff" aria-label="Pass the screen">
+        <p className="eyebrow">Pass and play</p>
+        <h2>{name}, you're up</h2>
+        <p>Hand the screen over. Your cards stay face-down until you're ready.</p>
+        <div className="summary-actions">
+          <button className="primary" onClick={onReveal} type="button" autoFocus>
+            Show my hand
+          </button>
+        </div>
+      </section>
+    </div>
+  )
+}
+
 function RoundSummary({ game, onNext, onExit }: { game: Game; onNext: () => void; onExit: () => void }) {
+  const table = tablePoints(game)
   const rows = game.players.map((player, index) => {
-    const table = game.melds.filter((meld) => meld.owner === index).reduce((sum, meld) => sum + cardPoints(meld.cards), 0)
     const hand = cardPoints(player.hand)
-    return { player, table, hand, net: table - hand }
+    return { player, table: table[index], hand, net: table[index] - hand }
   })
   const leader = rows[0].net === rows[1].net ? null : rows[0].net > rows[1].net ? 0 : 1
   const total = game.players[0].score === game.players[1].score ? null : game.players[0].score > game.players[1].score ? 0 : 1

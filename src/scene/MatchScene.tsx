@@ -32,16 +32,17 @@ type Props = {
   canDraw: boolean
   canPlay: boolean
   revealAll: boolean
+  hideHand: boolean
   actions: Actions
 }
 
-export function MatchScene({ game, viewer, canDraw, canPlay, revealAll, actions }: Props) {
+export function MatchScene({ game, viewer, canDraw, canPlay, revealAll, hideHand, actions }: Props) {
   const [hoverId, setHoverId] = useState<string | null>(null)
   const m = metricsFor(usePortrait())
 
   const layout = useMemo(
-    () => layoutCards({ game, viewer, hoverId, canDraw, canPlay, revealAll, actions, m }),
-    [game, viewer, hoverId, canDraw, canPlay, revealAll, actions, m],
+    () => layoutCards({ game, viewer, hoverId, canDraw, canPlay, revealAll, hideHand, actions, m }),
+    [game, viewer, hoverId, canDraw, canPlay, revealAll, hideHand, actions, m],
   )
 
   return (

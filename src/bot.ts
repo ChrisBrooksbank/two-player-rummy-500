@@ -1,8 +1,10 @@
 import {
+  canLayOff,
   cardPoints,
   discardFromHand,
   drawFromStock,
   endBlockedRound,
+  layOff,
   playMeld,
   rankValues,
   runValues,
@@ -103,6 +105,17 @@ function chooseDiscard(hand: Card[]): Card {
   })
 }
 
+/** A hand card that fits onto a meld already on the table, keeping one card back to discard. */
+function findLayOff(game: Game): { card: Card; meldId: string } | null {
+  const hand = game.players[game.active].hand
+  if (hand.length < 2) return null
+  for (const card of hand) {
+    const meld = game.melds.find((candidate) => canLayOff(candidate, [card]))
+    if (meld) return { card, meldId: meld.id }
+  }
+  return null
+}
+
 /** Performs a single action for the active bot. Always returns a changed game. */
 export function botStep(game: Game): Game {
   if (game.phase === 'draw') {
@@ -125,6 +138,8 @@ export function botStep(game: Game): Game {
     const [meld] = planMelds(hand, game.drawLock?.cardId)
     if (meld) return playMeld(game, meld.map((card) => card.id))
     if (game.drawLock) return endBlockedRound(game)
+    const fit = findLayOff(game)
+    if (fit) return layOff(game, [fit.card.id], fit.meldId)
     return discardFromHand(game, chooseDiscard(hand).id)
   }
 

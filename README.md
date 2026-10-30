@@ -35,7 +35,7 @@ That single rule turns the discard pile into a public memory game, a temptation 
 | Mode | What it is |
 | --- | --- |
 | 🂡 **Play the bot** | You against a rule-aware computer opponent. |
-| 🂱 **Two players** | Pass-and-play on one screen. The table flips to whoever is up. |
+| 🂱 **Two players** | Pass-and-play on one screen. Between turns the next hand stays face-down until its player taps **Show my hand**. |
 | 🃁 **Watch two bots** | Sit back. Both hands are revealed and you watch them scheme. |
 
 ## How to play
@@ -48,7 +48,7 @@ Each player gets **13 cards**. One card is flipped to start the discard pile; th
 ### A turn: draw, meld, discard
 
 1. **Draw**: take the top of the **stock**, the **top discard**, or reach into the **buried discard pile**.
-2. **Meld** *(optional)*: lay down any valid melds from your hand.
+2. **Meld** *(optional)*: lay down any valid melds from your hand, or **lay off** cards onto any meld already on the table (yours or your opponent's). Laid-off cards score for you.
 3. **Discard**: put one card on the pile to end your turn.
 
 ### Melds
@@ -168,7 +168,6 @@ There is no test runner yet; the strict TypeScript build is the safety net.
 
 These are natural next steps rather than bugs:
 
-- [ ] Laying off cards onto existing melds
 - [ ] Jokers / wild cards
 - [ ] Configurable ace behaviour (high, low, or both)
 - [ ] Strict "must discard to go out" house-rule toggle

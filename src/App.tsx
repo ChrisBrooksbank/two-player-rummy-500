@@ -2,11 +2,13 @@ import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 import { botStep } from './bot'
 import {
+  canLayOff,
   classifyMeld,
   createGame,
   discardFromHand,
   drawFromStock,
   endBlockedRound,
+  layOff,
   playMeld,
   takeFromDiscard,
   toggleSelected,
@@ -59,6 +61,8 @@ function App() {
   const [game, setGame] = useState<Game | null>(null)
   const [paused, setPaused] = useState(false)
   const [ready, setReady] = useState(false)
+  // Pass-and-play: the seat whose player has tapped through the hand-off screen this turn.
+  const [revealedSeat, setRevealedSeat] = useState<number | null>(null)
 
   useEffect(() => {
     // Card faces are painted once, so give the web fonts a moment to arrive first.
@@ -77,6 +81,7 @@ function App() {
       takeDiscard: (index) => setGame((current) => (current ? takeFromDiscard(current, index) : current)),
       toggleCard: (cardId) => setGame((current) => (current ? toggleSelected(current, cardId) : current)),
       discardCard: (cardId) => setGame((current) => (current ? discardFromHand(current, cardId) : current)),
+      layOff: (meldId) => setGame((current) => (current ? layOff(current, current.selected, meldId) : current)),
     }),
     [],
   )
@@ -85,10 +90,13 @@ function App() {
 
   const humanSeats = game ? game.players.flatMap((player, index) => (player.controller === 'human' ? [index] : [])) : []
   // Pass-and-play shows whoever is up; otherwise the table is seen from one fixed seat.
-  const viewer = game ? (humanSeats.length === 2 ? game.active : (humanSeats[0] ?? 0)) : 0
+  const passAndPlay = humanSeats.length === 2
+  const viewer = game ? (passAndPlay ? game.active : (humanSeats[0] ?? 0)) : 0
   const activePlayer = game?.players[game.active]
   const roundOver = game?.phase === 'round-over'
-  const humanTurn = Boolean(game && activePlayer?.controller === 'human' && !roundOver)
+  // Keep the next hand face-down until its player has the screen.
+  const handoff = Boolean(game && passAndPlay && !roundOver && revealedSeat !== game.active)
+  const humanTurn = Boolean(game && activePlayer?.controller === 'human' && !roundOver && !handoff)
   const botTurn = Boolean(game && activePlayer?.controller === 'bot' && !roundOver)
   const canDraw = humanTurn && game?.phase === 'draw'
   const canPlay = humanTurn && game?.phase === 'play'
@@ -98,9 +106,16 @@ function App() {
     return classifyMeld(game.players[viewer].hand.filter((card) => game.selected.includes(card.id)))
   }, [game, viewer])
 
+  const layOffTargets = useMemo(() => {
+    if (!game || !canPlay) return []
+    const cards = game.players[viewer].hand.filter((card) => game.selected.includes(card.id))
+    return game.melds.filter((meld) => canLayOff(meld, cards)).map((meld) => meld.id)
+  }, [game, viewer, canPlay])
+
   function start(next: Mode) {
     setMode(next)
     setPaused(false)
+    setRevealedSeat(null)
     setGame(createGame(next.seats))
   }
 
@@ -120,6 +135,7 @@ function App() {
               canDraw={canDraw}
               canPlay={canPlay}
               revealAll={humanSeats.length === 0}
+              hideHand={handoff}
               actions={actions}
             />
           ) : (
@@ -139,13 +155,23 @@ function App() {
           botTurn={botTurn}
           paused={paused}
           selectedMeldKind={selectedMeldKind}
+          layOffTargets={layOffTargets}
+          handoff={handoff}
+          onReveal={() => setRevealedSeat(game.active)}
           onTogglePause={() => setPaused((value) => !value)}
           onDraw={actions.drawStock}
           onMeld={() => setGame((current) => (current ? playMeld(current, current.selected) : current))}
+          onLayOff={() => layOffTargets.length === 1 && actions.layOff(layOffTargets[0])}
           onDiscard={() => game.selected[0] && actions.discardCard(game.selected[0])}
           onBlocked={() => setGame((current) => (current ? endBlockedRound(current) : current))}
-          onNextRound={() => setGame((current) => (current ? createGame(mode.seats, current) : current))}
-          onNewMatch={() => setGame(createGame(mode.seats))}
+          onNextRound={() => {
+            setRevealedSeat(null)
+            setGame((current) => (current ? createGame(mode.seats, current) : current))
+          }}
+          onNewMatch={() => {
+            setRevealedSeat(null)
+            setGame(createGame(mode.seats))
+          }}
           onExit={exit}
         />
       ) : (
