@@ -306,6 +306,16 @@ export function scoreRound(game: Game, lead: string): Game {
   }
 }
 
+export const TARGET_SCORE = 500
+
+/** Seat index of the match winner once a round ends with someone at 500+; the higher score wins, a tie plays on. */
+export function matchWinner(game: Game): number | null {
+  if (game.phase !== 'round-over') return null
+  const [a, b] = game.players.map((player) => player.score)
+  if (Math.max(a, b) < TARGET_SCORE || a === b) return null
+  return a > b ? 0 : 1
+}
+
 export function endBlockedRound(game: Game): Game {
   if (game.phase === 'round-over') return game
   return scoreRound(game, 'Stock is empty and nobody can draw.')

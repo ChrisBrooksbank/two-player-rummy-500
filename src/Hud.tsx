@@ -1,4 +1,4 @@
-import { cardPoints, tablePoints } from './game'
+import { cardPoints, matchWinner, TARGET_SCORE, tablePoints } from './game'
 import type { Game } from './game'
 
 export type Mode = {
@@ -167,7 +167,7 @@ export function MatchHud(props: MatchHudProps) {
           ) : null}
         </footer>
       ) : (
-        <RoundSummary game={game} onNext={props.onNextRound} onExit={props.onExit} />
+        <RoundSummary game={game} onNext={props.onNextRound} onNewMatch={props.onNewMatch} onExit={props.onExit} />
       )}
     </>
   )
@@ -190,8 +190,19 @@ function Handoff({ name, onReveal }: { name: string; onReveal: () => void }) {
   )
 }
 
-function RoundSummary({ game, onNext, onExit }: { game: Game; onNext: () => void; onExit: () => void }) {
+function RoundSummary({
+  game,
+  onNext,
+  onNewMatch,
+  onExit,
+}: {
+  game: Game
+  onNext: () => void
+  onNewMatch: () => void
+  onExit: () => void
+}) {
   const table = tablePoints(game)
+  const winner = matchWinner(game)
   const rows = game.players.map((player, index) => {
     const hand = cardPoints(player.hand)
     return { player, table: table[index], hand, net: table[index] - hand }
@@ -202,8 +213,16 @@ function RoundSummary({ game, onNext, onExit }: { game: Game; onNext: () => void
   return (
     <div className="summary-backdrop">
       <section className="summary" aria-label="Round summary">
-        <p className="eyebrow">Round {game.round} complete</p>
-        <h2>{leader === null ? 'A dead heat' : `${game.players[leader].name} took the round`}</h2>
+        <p className="eyebrow">
+          {winner === null ? `Round ${game.round} complete` : `Round ${game.round} complete · first to ${TARGET_SCORE}`}
+        </p>
+        <h2>
+          {winner !== null
+            ? `${game.players[winner].name} won the match`
+            : leader === null
+              ? 'A dead heat'
+              : `${game.players[leader].name} took the round`}
+        </h2>
         <table>
           <thead>
             <tr>
@@ -227,9 +246,15 @@ function RoundSummary({ game, onNext, onExit }: { game: Game; onNext: () => void
           </tbody>
         </table>
         <div className="summary-actions">
-          <button className="primary" onClick={onNext} type="button" autoFocus>
-            Deal next round
-          </button>
+          {winner === null ? (
+            <button className="primary" onClick={onNext} type="button" autoFocus>
+              Deal next round
+            </button>
+          ) : (
+            <button className="primary" onClick={onNewMatch} type="button" autoFocus>
+              New match
+            </button>
+          )}
           <button className="ghost" onClick={onExit} type="button">
             Back to menu
           </button>

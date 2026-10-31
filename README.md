@@ -82,7 +82,7 @@ Taking the **top** discard has no strings attached. Only the buried reach is a c
 | K, Q, J, 10 | **10** |
 | 2 – 9 | Face value |
 
-At the end of a round each player scores **the value of their melds on the table minus the value of the cards still in their hand**. Scores carry across rounds, and the deal alternates. Going out early is great; getting caught holding aces is not.
+At the end of a round each player scores **the value of their melds on the table minus the value of the cards still in their hand**. Scores carry across rounds, and the deal alternates. First to **500** wins the match. Going out early is great; getting caught holding aces is not.
 
 The round also ends if the stock runs dry and nobody can move.
 
@@ -98,7 +98,7 @@ Rummy 500 belongs to the **rummy family**, a sprawling tribe of "collect sets an
 
 It became a kitchen-table staple, especially in North America, because it rewards *memory*, *risk assessment*, and a small amount of cheerful cruelty. House rules vary enormously from family to family. This project models the buried-discard commitment variant often played in Canada: dive as deep as you like, but you must use the card you dove for.
 
-> Note: this prototype plays rounds and keeps a running score, but does not yet declare a 500-point match winner.
+> The match ends when a round finishes with at least one player on 500 or more; the higher total wins. If both are level at 500+, play continues.
 
 ## Under the hood
 
